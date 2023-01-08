@@ -444,15 +444,16 @@ class Paths
 	static public function modFolders(key:String) {
 		if(currentModDirectory != null && currentModDirectory.length > 0) {
 			var fileToCheck:String = mods(currentModDirectory + '/' + key);
-			if(FileSystem.exists(SUtil.getPath() + fileToCheck)) {
-				return SUtil.getPath() + fileToCheck;
+			trace(fileToCheck);
+			if(FileSystem.exists(fileToCheck)) {
+				return fileToCheck;
 			}
 		}
 
 		for(mod in getGlobalMods()){
 			var fileToCheck:String = mods(mod + '/' + key);
-			if(FileSystem.exists(SUtil.getPath() + fileToCheck))
-				return SUtil.getPath() + fileToCheck;
+			if(FileSystem.exists(fileToCheck))
+				return fileToCheck;
 
 		}
 		return SUtil.getPath() + 'mods/' + key;
@@ -466,7 +467,7 @@ class Paths
 	static public function pushGlobalMods() // prob a better way to do this but idc
 	{
 		globalMods = [];
-		var path:String = 'modsList.txt';
+		var path:String = SUtil.getPath() + 'modsList.txt';
 		if(FileSystem.exists(path))
 		{
 			var list:Array<String> = CoolUtil.coolTextFile(path);

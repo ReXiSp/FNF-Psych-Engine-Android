@@ -497,6 +497,7 @@ class FreeplayState extends MusicBeatState
 		}
 		
 		Paths.currentModDirectory = songs[curSelected].folder;
+		trace(songs[curSelected].folder);
 		PlayState.storyWeek = songs[curSelected].week;
 
 		CoolUtil.difficulties = CoolUtil.defaultDifficulties.copy();
