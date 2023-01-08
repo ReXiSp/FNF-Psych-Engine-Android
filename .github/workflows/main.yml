@@ -19,12 +19,12 @@ jobs:
         uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r21e
+          ndk-version: r15c
 
       - name: Setup Java JDK
         uses: actions/setup-java@v1
         with:
-          java-version: 11
+          java-version: 19
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v2
@@ -40,7 +40,7 @@ jobs:
           haxelib --quiet install hxcpp > /dev/null
           haxelib --quiet install lime
           haxelib --quiet install openfl
-          haxelib --never install flixel
+          haxelib --never install flixel 4.11.0
           haxelib run lime setup flixel
           haxelib --quiet install flixel-tools
           haxelib --quiet install flixel-ui
@@ -65,7 +65,7 @@ jobs:
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
 
       - name: Compile
-        run: haxelib run lime build android --app-version="4.0.0-${{ github.run_id}}"
+        run: haxelib run lime build android -D NO_PRECOMPILED_HEADERS --app-version="4.0.0-${{ github.run_id}}"
 
       - name: Publish Artifact
         uses: actions/upload-artifact@v2.2.4
