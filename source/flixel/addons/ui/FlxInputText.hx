@@ -203,7 +203,7 @@ class FlxInputText extends FlxText
 	 * @param	EmbeddedFont	Whether this text field uses embedded fonts or not
 	 */
 	public function new(X:Float = 0, Y:Float = 0, Width:Int = 150, ?Text:String, size:Int = 8, TextColor:Int = FlxColor.BLACK,
-			BackgroundColor:Int = FlxColor.WHITE, EmbeddedFont:Bool = true)
+			BackgroundColor:Int = FlxColor.WHITE, EmbeddedFont:Bool = true, notosans:Bool = false)
 	{
 		super(X, Y, Width, Text, size, EmbeddedFont);
 		backgroundColor = BackgroundColor;
@@ -235,6 +235,9 @@ class FlxInputText extends FlxText
 		{
 			Text = "";
 		}
+
+		if (notosans)
+			font = Paths.font("notosans.otf");
 
 		text = Text; // ensure set_text is called to avoid bugs (like not preparing _charBoundaries on sys target, making it impossible to click)
 

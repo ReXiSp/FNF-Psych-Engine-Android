@@ -1,5 +1,6 @@
 package editors;
 
+import mobile.FileBrowserDialog;
 #if desktop
 import Discord.DiscordClient;
 #end
@@ -105,6 +106,11 @@ class DialogueEditorState extends MusicBeatState
 		daText.scaleY = 0.7;
 		add(daText);
 		changeText();
+
+		#if android
+		addVirtualPad(LEFT_FULL, A_B_C);
+		#end
+
 		super.create();
 	}
 
@@ -133,6 +139,7 @@ class DialogueEditorState extends MusicBeatState
 		tab_group.name = "Dialogue Line";
 
 		characterInputText = new FlxUIInputText(10, 20, 80, DialogueCharacter.DEFAULT_CHARACTER, 8);
+		characterInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(characterInputText);
 
 		speedStepper = new FlxUINumericStepper(10, characterInputText.y + 40, 0.005, 0.05, 0, 0.5, 3);
@@ -145,9 +152,11 @@ class DialogueEditorState extends MusicBeatState
 		};
 
 		soundInputText = new FlxUIInputText(10, speedStepper.y + 40, 150, '', 8);
+		soundInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(soundInputText);
 		
 		lineInputText = new FlxUIInputText(10, soundInputText.y + 35, 200, DEFAULT_TEXT, 8);
+		lineInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(lineInputText);
 
 		var loadButton:FlxButton = new FlxButton(20, lineInputText.y + 25, "Load Dialogue", function() {
@@ -352,17 +361,17 @@ class DialogueEditorState extends MusicBeatState
 			FlxG.sound.muteKeys = TitleState.muteKeys;
 			FlxG.sound.volumeDownKeys = TitleState.volumeDownKeys;
 			FlxG.sound.volumeUpKeys = TitleState.volumeUpKeys;
-			if(FlxG.keys.justPressed.SPACE) {
+			if(FlxG.keys.justPressed.SPACE #if android || _virtualpad.buttonC.justPressed #end) {
 				reloadText(false);
 			}
-			if(FlxG.keys.justPressed.ESCAPE) {
+			if(FlxG.keys.justPressed.ESCAPE #if android || FlxG.android.justReleased.BACK #end) {
 				MusicBeatState.switchState(new editors.MasterEditorMenu());
 				FlxG.sound.playMusic(Paths.music('freakyMenu'), 1);
 				transitioning = true;
 			}
 			var negaMult:Array<Int> = [1, -1];
-			var controlAnim:Array<Bool> = [FlxG.keys.justPressed.W, FlxG.keys.justPressed.S];
-			var controlText:Array<Bool> = [FlxG.keys.justPressed.D, FlxG.keys.justPressed.A];
+			var controlAnim:Array<Bool> = [FlxG.keys.justPressed.W #if android || _virtualpad.buttonUp.justPressed #end, FlxG.keys.justPressed.S #if android || _virtualpad.buttonDown.justPressed #end];
+			var controlText:Array<Bool> = [FlxG.keys.justPressed.D #if android || _virtualpad.buttonLeft.justPressed #end, FlxG.keys.justPressed.A #if android || _virtualpad.buttonRight.justPressed #end];
 			for (i in 0...controlAnim.length) {
 				if(controlAnim[i] && character.jsonFile.animations.length > 0) {
 					curAnim -= negaMult[i];
@@ -381,7 +390,7 @@ class DialogueEditorState extends MusicBeatState
 				}
 			}
 
-			if(FlxG.keys.justPressed.O) {
+			if(FlxG.keys.justPressed.O #if android || _virtualpad.buttonA.justPressed #end) {
 				dialogueFile.dialogue.remove(dialogueFile.dialogue[curSelected]);
 				if(dialogueFile.dialogue.length < 1) //You deleted everything, dumbo!
 				{
@@ -390,7 +399,7 @@ class DialogueEditorState extends MusicBeatState
 					];
 				}
 				changeText();
-			} else if(FlxG.keys.justPressed.P) {
+			} else if(FlxG.keys.justPressed.P #if android || _virtualpad.buttonB.justPressed #end) {
 				dialogueFile.dialogue.insert(curSelected + 1, copyDefaultLine());
 				changeText(1);
 			}
@@ -453,24 +462,38 @@ class DialogueEditorState extends MusicBeatState
 
 	var _file:FileReference = null;
 	function loadDialogue() {
+		#if flash
 		var jsonFilter:FileFilter = new FileFilter('JSON', 'json');
 		_file = new FileReference();
 		_file.addEventListener(Event.SELECT, onLoadComplete);
 		_file.addEventListener(Event.CANCEL, onLoadCancel);
 		_file.addEventListener(IOErrorEvent.IO_ERROR, onLoadError);
 		_file.browse([jsonFilter]);
+		#else
+		openSubState(new FileBrowserDialog(LOAD_FILE, SUtil.getPathNoSlash(), "*.json", "json", "", onLoadComplete));
+		#end
 	}
 
+	#if flash
 	function onLoadComplete(_):Void
+	#else
+	function onLoadComplete(path:String, name:String, cancelled:Bool):Void
+	#end
 	{
+		#if flash
 		_file.removeEventListener(Event.SELECT, onLoadComplete);
 		_file.removeEventListener(Event.CANCEL, onLoadCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onLoadError);
+		#end
 
 		#if sys
 		var fullPath:String = null;
+		#if flash
 		@:privateAccess
 		if(_file.__path != null) fullPath = _file.__path;
+		#else
+		fullPath = path;
+		#end
 
 		if(fullPath != null) {
 			var rawJson:String = File.getContent(fullPath);
@@ -478,7 +501,11 @@ class DialogueEditorState extends MusicBeatState
 				var loadedDialog:DialogueFile = cast Json.parse(rawJson);
 				if(loadedDialog.dialogue != null && loadedDialog.dialogue.length > 0) //Make sure it's really a dialogue file
 				{
+					#if flash
 					var cutName:String = _file.name.substr(0, _file.name.length - 5);
+					#else
+					var cutName:String = name.substr(0, name.length - 5);
+					#end
 					trace("Successfully loaded file: " + cutName);
 					dialogueFile = loadedDialog;
 					changeText();
@@ -498,11 +525,12 @@ class DialogueEditorState extends MusicBeatState
 		*/
 	function onLoadCancel(_):Void
 	{
+		#if flash
 		_file.removeEventListener(Event.SELECT, onLoadComplete);
 		_file.removeEventListener(Event.CANCEL, onLoadCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onLoadError);
-		_file = null;
 		trace("Cancelled file loading.");
+		#end
 	}
 
 	/**
@@ -510,22 +538,28 @@ class DialogueEditorState extends MusicBeatState
 		*/
 	function onLoadError(_):Void
 	{
+		#if flash
 		_file.removeEventListener(Event.SELECT, onLoadComplete);
 		_file.removeEventListener(Event.CANCEL, onLoadCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onLoadError);
 		_file = null;
 		trace("Problem loading file");
+		#end
 	}
 
 	function saveDialogue() {
 		var data:String = Json.stringify(dialogueFile, "\t");
 		if (data.length > 0)
 		{
+			#if flash
 			_file = new FileReference();
 			_file.addEventListener(Event.COMPLETE, onSaveComplete);
 			_file.addEventListener(Event.CANCEL, onSaveCancel);
 			_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
 			_file.save(data, "dialogue.json");
+			#else
+			openSubState(new FileBrowserDialog(SAVE_FILE, SUtil.getPathNoSlash(), "dialogue.json", "json", data));
+			#end
 		}
 	}
 

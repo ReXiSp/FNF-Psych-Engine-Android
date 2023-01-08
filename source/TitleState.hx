@@ -1,6 +1,7 @@
 package;
 
 #if desktop
+import Discord.DiscordClient;
 import sys.thread.Thread;
 #end
 import flixel.FlxG;
@@ -34,6 +35,7 @@ import flixel.tweens.FlxEase;
 import flixel.tweens.FlxTween;
 import flixel.util.FlxColor;
 import flixel.util.FlxTimer;
+import lime.app.Application;
 import openfl.Assets;
 
 using StringTools;
@@ -86,6 +88,11 @@ class TitleState extends MusicBeatState
 
 	override public function create():Void
 	{
+
+		#if android
+		FlxG.android.preventDefaultKeys = [BACK];
+		#end
+
 		Paths.clearStoredMemory();
 		Paths.clearUnusedMemory();
 
@@ -127,7 +134,7 @@ class TitleState extends MusicBeatState
 		swagShader = new ColorSwap();
 		super.create();
 
-		FlxG.save.bind('funkin', CoolUtil.getSavePath());
+		FlxG.save.bind('funkin', 'ninjamuffin99');
 
 		ClientPrefs.loadPrefs();
 
@@ -206,6 +213,16 @@ class TitleState extends MusicBeatState
 			FlxTransitionableState.skipNextTransOut = true;
 			MusicBeatState.switchState(new FlashingState());
 		} else {
+			#if desktop
+			if (!DiscordClient.isInitialized)
+			{
+				DiscordClient.initialize();
+				Application.current.onExit.add (function (exitCode) {
+					DiscordClient.shutdown();
+				});
+			}
+			#end
+
 			if (initialized)
 				startIntro();
 			else
@@ -335,7 +352,7 @@ class TitleState extends MusicBeatState
 			path = "assets/images/titleEnter.png";
 		}
 		//trace(path, FileSystem.exists(path));
-		titleText.frames = FlxAtlasFrames.fromSparrow(BitmapData.fromFile(path),File.getContent(StringTools.replace(path,".png",".xml")));
+		titleText.frames = FlxAtlasFrames.fromSparrow(BitmapData.fromFile(path),File.getContent(SUtil.getPath() + StringTools.replace(path,".png",".xml")));
 		#else
 
 		titleText.frames = Paths.getSparrowAtlas('titleEnter');

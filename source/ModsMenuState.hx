@@ -377,6 +377,10 @@ class ModsMenuState extends MusicBeatState
 
 		FlxG.mouse.visible = true;
 
+		#if android
+		addVirtualPad(UP_DOWN, B);
+		#end
+
 		super.create();
 	}
 
@@ -458,7 +462,7 @@ class ModsMenuState extends MusicBeatState
 		}
 
 		var path:String = 'modsList.txt';
-		File.saveContent(path, fileStr);
+		File.saveContent(SUtil.getPath() + path, fileStr);
 		Paths.pushGlobalMods();
 	}
 

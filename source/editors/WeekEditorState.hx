@@ -1,5 +1,9 @@
 package editors;
 
+import mobile.FileBrowserDialog;
+import flixel.input.FlxInput;
+import flixel.addons.ui.FlxUIState;
+import openfl.events.ContextMenuEvent;
 #if desktop
 import Discord.DiscordClient;
 #end
@@ -31,6 +35,7 @@ import haxe.Json;
 import sys.io.File;
 import sys.FileSystem;
 #end
+
 import WeekData;
 
 using StringTools;
@@ -177,26 +182,34 @@ class WeekEditorState extends MusicBeatState
 		tab_group.name = "Week";
 		
 		songsInputText = new FlxUIInputText(10, 30, 200, '', 8);
+		songsInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(songsInputText);
 
 		opponentInputText = new FlxUIInputText(10, songsInputText.y + 40, 70, '', 8);
+		opponentInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(opponentInputText);
 		boyfriendInputText = new FlxUIInputText(opponentInputText.x + 75, opponentInputText.y, 70, '', 8);
+		boyfriendInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(boyfriendInputText);
 		girlfriendInputText = new FlxUIInputText(boyfriendInputText.x + 75, opponentInputText.y, 70, '', 8);
+		girlfriendInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(girlfriendInputText);
 
 		backgroundInputText = new FlxUIInputText(10, opponentInputText.y + 40, 120, '', 8);
+		backgroundInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(backgroundInputText);
 		
 
 		displayNameInputText = new FlxUIInputText(10, backgroundInputText.y + 60, 200, '', 8);
+		displayNameInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(backgroundInputText);
 
 		weekNameInputText = new FlxUIInputText(10, displayNameInputText.y + 60, 150, '', 8);
+		weekNameInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(weekNameInputText);
 
 		weekFileInputText = new FlxUIInputText(10, weekNameInputText.y + 40, 100, '', 8);
+		weekFileInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(weekFileInputText);
 		reloadWeekThing();
 
@@ -251,9 +264,11 @@ class WeekEditorState extends MusicBeatState
 		hiddenUntilUnlockCheckbox.alpha = 0.4;
 
 		weekBeforeInputText = new FlxUIInputText(10, hiddenUntilUnlockCheckbox.y + 55, 100, '', 8);
+		weekBeforeInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(weekBeforeInputText);
 
 		difficultiesInputText = new FlxUIInputText(10, weekBeforeInputText.y + 60, 200, '', 8);
+		difficultiesInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(difficultiesInputText);
 		
 		tab_group.add(new FlxText(weekBeforeInputText.x, weekBeforeInputText.y - 28, 0, 'Week File name of the Week you have\nto finish for Unlocking:'));
@@ -445,7 +460,7 @@ class WeekEditorState extends MusicBeatState
 			FlxG.sound.muteKeys = TitleState.muteKeys;
 			FlxG.sound.volumeDownKeys = TitleState.volumeDownKeys;
 			FlxG.sound.volumeUpKeys = TitleState.volumeUpKeys;
-			if(FlxG.keys.justPressed.ESCAPE) {
+			if(FlxG.keys.justPressed.ESCAPE #if android || FlxG.android.justReleased.BACK #end) {
 				MusicBeatState.switchState(new editors.MasterEditorMenu());
 				FlxG.sound.playMusic(Paths.music('freakyMenu'));
 			}
@@ -463,27 +478,37 @@ class WeekEditorState extends MusicBeatState
 	}
 
 	private static var _file:FileReference;
-	public static function loadWeek() {
+	public function loadWeek() {
+		#if flash
 		var jsonFilter:FileFilter = new FileFilter('JSON', 'json');
 		_file = new FileReference();
 		_file.addEventListener(Event.SELECT, onLoadComplete);
 		_file.addEventListener(Event.CANCEL, onLoadCancel);
 		_file.addEventListener(IOErrorEvent.IO_ERROR, onLoadError);
 		_file.browse([jsonFilter]);
+		#else
+		openSubState(new FileBrowserDialog(LOAD_FILE, SUtil.getPathNoSlash(), weekFileName + ".json", "json", "", onLoadComplete));
+		#end
 	}
 	
 	public static var loadedWeek:WeekFile = null;
 	public static var loadError:Bool = false;
-	private static function onLoadComplete(_):Void
+	public static function onLoadComplete(path:String, name:String, cancelled:Bool):Void
 	{
+		#if desktop
 		_file.removeEventListener(Event.SELECT, onLoadComplete);
 		_file.removeEventListener(Event.CANCEL, onLoadCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onLoadError);
+		#end
 
 		#if sys
 		var fullPath:String = null;
+		#if flash
 		@:privateAccess
 		if(_file.__path != null) fullPath = _file.__path;
+		#else
+		fullPath = path;
+		#end
 
 		if(fullPath != null) {
 			var rawJson:String = File.getContent(fullPath);
@@ -491,7 +516,11 @@ class WeekEditorState extends MusicBeatState
 				loadedWeek = cast Json.parse(rawJson);
 				if(loadedWeek.weekCharacters != null && loadedWeek.weekName != null) //Make sure it's really a week
 				{
+					#if flash
 					var cutName:String = _file.name.substr(0, _file.name.length - 5);
+					#else
+					var cutName:String = name.substr(0, name.length - 5);
+					#end
 					trace("Successfully loaded file: " + cutName);
 					loadError = false;
 
@@ -514,11 +543,13 @@ class WeekEditorState extends MusicBeatState
 		*/
 		private static function onLoadCancel(_):Void
 	{
+		#if flash
 		_file.removeEventListener(Event.SELECT, onLoadComplete);
 		_file.removeEventListener(Event.CANCEL, onLoadCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onLoadError);
 		_file = null;
 		trace("Cancelled file loading.");
+		#end
 	}
 
 	/**
@@ -526,54 +557,66 @@ class WeekEditorState extends MusicBeatState
 		*/
 	private static function onLoadError(_):Void
 	{
+		#if flash
 		_file.removeEventListener(Event.SELECT, onLoadComplete);
 		_file.removeEventListener(Event.CANCEL, onLoadCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onLoadError);
 		_file = null;
 		trace("Problem loading file");
+		#end
 	}
 
-	public static function saveWeek(weekFile:WeekFile) {
+	public function saveWeek(weekFile:WeekFile) {
 		var data:String = Json.stringify(weekFile, "\t");
 		if (data.length > 0)
 		{
+			#if flash
 			_file = new FileReference();
 			_file.addEventListener(Event.COMPLETE, onSaveComplete);
 			_file.addEventListener(Event.CANCEL, onSaveCancel);
 			_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
 			_file.save(data, weekFileName + ".json");
+			#else
+			openSubState(new FileBrowserDialog(SAVE_FILE, SUtil.getPathNoSlash(), weekFileName + ".json", "json", data));
+			#end
 		}
 	}
 	
-	private static function onSaveComplete(_):Void
+	public static function onSaveComplete(_, _):Void
 	{
+		#if flash
 		_file.removeEventListener(Event.COMPLETE, onSaveComplete);
 		_file.removeEventListener(Event.CANCEL, onSaveCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onSaveError);
 		_file = null;
+		#end
 		FlxG.log.notice("Successfully saved file.");
 	}
 
 	/**
 		* Called when the save file dialog is cancelled.
 		*/
-		private static function onSaveCancel(_):Void
+		public static function onSaveCancel(_):Void
 	{
+		#if flash
 		_file.removeEventListener(Event.COMPLETE, onSaveComplete);
 		_file.removeEventListener(Event.CANCEL, onSaveCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onSaveError);
 		_file = null;
+		#end
 	}
 
 	/**
 		* Called if there is an error while saving the gameplay recording.
 		*/
-	private static function onSaveError(_):Void
+	public static function onSaveError(_):Void
 	{
+		#if flash
 		_file.removeEventListener(Event.COMPLETE, onSaveComplete);
 		_file.removeEventListener(Event.CANCEL, onSaveCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onSaveError);
 		_file = null;
+		#end
 		FlxG.log.error("Problem saving file");
 	}
 }
@@ -626,6 +669,11 @@ class WeekEditorFreeplayState extends MusicBeatState
 
 		addEditorBox();
 		changeSelection();
+
+		#if android
+		addVirtualPad(UP_DOWN, NONE);
+		#end
+		
 		super.create();
 	}
 	
@@ -650,7 +698,7 @@ class WeekEditorFreeplayState extends MusicBeatState
 		add(blackBlack);
 
 		var loadWeekButton:FlxButton = new FlxButton(0, 685, "Load Week", function() {
-			WeekEditorState.loadWeek();
+			loadWeek();
 		});
 		loadWeekButton.screenCenter(X);
 		loadWeekButton.x -= 120;
@@ -664,7 +712,7 @@ class WeekEditorFreeplayState extends MusicBeatState
 		add(storyModeButton);
 	
 		var saveWeekButton:FlxButton = new FlxButton(0, 685, "Save Week", function() {
-			WeekEditorState.saveWeek(weekFile);
+			saveWeek(weekFile);
 		});
 		saveWeekButton.screenCenter(X);
 		saveWeekButton.x += 120;
@@ -720,6 +768,7 @@ class WeekEditorFreeplayState extends MusicBeatState
 		});
 
 		iconInputText = new FlxUIInputText(10, bgColorStepperR.y + 70, 100, '', 8);
+		iconInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 
 		var hideFreeplayCheckbox:FlxUICheckBox = new FlxUICheckBox(10, iconInputText.y + 30, null, null, "Hide Week from Freeplay?", 100);
 		hideFreeplayCheckbox.checked = weekFile.hideFreeplay;
@@ -808,7 +857,7 @@ class WeekEditorFreeplayState extends MusicBeatState
 			FlxG.sound.muteKeys = TitleState.muteKeys;
 			FlxG.sound.volumeDownKeys = TitleState.volumeDownKeys;
 			FlxG.sound.volumeUpKeys = TitleState.volumeUpKeys;
-			if(FlxG.keys.justPressed.ESCAPE) {
+			if(FlxG.keys.justPressed.ESCAPE #if android || FlxG.android.justReleased.BACK #end) {
 				MusicBeatState.switchState(new editors.MasterEditorMenu());
 				FlxG.sound.playMusic(Paths.music('freakyMenu'));
 			}
@@ -817,5 +866,35 @@ class WeekEditorFreeplayState extends MusicBeatState
 			if(controls.UI_DOWN_P) changeSelection(1);
 		}
 		super.update(elapsed);
+	}
+
+	public function saveWeek(weekFile:WeekFile) {
+		var data:String = Json.stringify(weekFile, "\t");
+		if (data.length > 0)
+		{
+			#if flash
+			_file = new FileReference();
+			_file.addEventListener(Event.COMPLETE, onSaveComplete);
+			_file.addEventListener(Event.CANCEL, onSaveCancel);
+			_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
+			_file.save(data, weekFileName + ".json");
+			#else
+			openSubState(new FileBrowserDialog(SAVE_FILE, SUtil.getPathNoSlash(), WeekEditorState.weekFileName + ".json", "json", data));
+			#end
+		}
+	}
+
+	private static var _file:FileReference;
+	public function loadWeek() {
+		#if flash
+		var jsonFilter:FileFilter = new FileFilter('JSON', 'json');
+		_file = new FileReference();
+		_file.addEventListener(Event.SELECT, onLoadComplete);
+		_file.addEventListener(Event.CANCEL, onLoadCancel);
+		_file.addEventListener(IOErrorEvent.IO_ERROR, onLoadError);
+		_file.browse([jsonFilter]);
+		#else
+		openSubState(new FileBrowserDialog(LOAD_FILE, SUtil.getPathNoSlash(), WeekEditorState.weekFileName + ".json", "json", "", WeekEditorState.onLoadComplete));
+		#end
 	}
 }

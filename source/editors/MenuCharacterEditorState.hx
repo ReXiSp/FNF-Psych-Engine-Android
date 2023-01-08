@@ -29,6 +29,9 @@ import haxe.Json;
 #if sys
 import sys.io.File;
 #end
+#if !flash
+import mobile.FileBrowserDialog;
+#end
 
 using StringTools;
 
@@ -80,6 +83,10 @@ class MenuCharacterEditorState extends MusicBeatState
 		addEditorBox();
 		FlxG.mouse.visible = true;
 		updateCharTypeBox();
+
+		#if android
+		addVirtualPad(LEFT_FULL, A_B);
+		#end
 
 		super.create();
 	}
@@ -170,10 +177,13 @@ class MenuCharacterEditorState extends MusicBeatState
 		tab_group.name = "Character";
 		
 		imageInputText = new FlxUIInputText(10, 20, 80, characterFile.image, 8);
+		imageInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(imageInputText);
 		idleInputText = new FlxUIInputText(10, imageInputText.y + 35, 100, characterFile.idle_anim, 8);
+		idleInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(idleInputText);
 		confirmInputText = new FlxUIInputText(10, idleInputText.y + 35, 100, characterFile.confirm_anim, 8);
+		confirmInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(confirmInputText);
 
 		flipXCheckbox = new FlxUICheckBox(10, confirmInputText.y + 30, null, null, "Flip X", 100);
@@ -285,32 +295,32 @@ class MenuCharacterEditorState extends MusicBeatState
 			FlxG.sound.muteKeys = TitleState.muteKeys;
 			FlxG.sound.volumeDownKeys = TitleState.volumeDownKeys;
 			FlxG.sound.volumeUpKeys = TitleState.volumeUpKeys;
-			if(FlxG.keys.justPressed.ESCAPE) {
+			if(FlxG.keys.justPressed.ESCAPE #if android || FlxG.android.justReleased.BACK #end) {
 				MusicBeatState.switchState(new editors.MasterEditorMenu());
 				FlxG.sound.playMusic(Paths.music('freakyMenu'));
 			}
 
 			var shiftMult:Int = 1;
-			if(FlxG.keys.pressed.SHIFT) shiftMult = 10;
+			if(FlxG.keys.pressed.SHIFT #if android || _virtualpad.buttonA.pressed #end) shiftMult = 10;
 
-			if(FlxG.keys.justPressed.LEFT) {
+			if(FlxG.keys.justPressed.LEFT #if android || _virtualpad.buttonLeft.justPressed #end) {
 				characterFile.position[0] += shiftMult;
 				updateOffset();
 			}
-			if(FlxG.keys.justPressed.RIGHT) {
+			if(FlxG.keys.justPressed.RIGHT #if android || _virtualpad.buttonRight.justPressed #end) {
 				characterFile.position[0] -= shiftMult;
 				updateOffset();
 			}
-			if(FlxG.keys.justPressed.UP) {
+			if(FlxG.keys.justPressed.UP #if android || _virtualpad.buttonUp.justPressed #end) {
 				characterFile.position[1] += shiftMult;
 				updateOffset();
 			}
-			if(FlxG.keys.justPressed.DOWN) {
+			if(FlxG.keys.justPressed.DOWN #if android || _virtualpad.buttonDown.justPressed #end) {
 				characterFile.position[1] -= shiftMult;
 				updateOffset();
 			}
 
-			if(FlxG.keys.justPressed.SPACE && curTypeSelected == 1) {
+			if(FlxG.keys.justPressed.SPACE #if android || _virtualpad.buttonB.pressed #end && curTypeSelected == 1) {
 				grpWeekCharacters.members[curTypeSelected].animation.play('confirm', true);
 			}
 		}
@@ -331,24 +341,38 @@ class MenuCharacterEditorState extends MusicBeatState
 
 	var _file:FileReference = null;
 	function loadCharacter() {
+		#if flash
 		var jsonFilter:FileFilter = new FileFilter('JSON', 'json');
 		_file = new FileReference();
 		_file.addEventListener(Event.SELECT, onLoadComplete);
 		_file.addEventListener(Event.CANCEL, onLoadCancel);
 		_file.addEventListener(IOErrorEvent.IO_ERROR, onLoadError);
 		_file.browse([jsonFilter]);
+		#else
+		openSubState(new FileBrowserDialog(LOAD_FILE, SUtil.getPathNoSlash(), "*.json", "json", "", onLoadComplete));
+		#end
 	}
 
+	#if flash
 	function onLoadComplete(_):Void
+	#else
+	function onLoadComplete(path:String, name:String, cancelled:Bool):Void
+	#end
 	{
+		#if flash
 		_file.removeEventListener(Event.SELECT, onLoadComplete);
 		_file.removeEventListener(Event.CANCEL, onLoadCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onLoadError);
+		#end
 
 		#if sys
 		var fullPath:String = null;
+		#if flash
 		@:privateAccess
 		if(_file.__path != null) fullPath = _file.__path;
+		#else
+		fullPath = path;
+		#end
 
 		if(fullPath != null) {
 			var rawJson:String = File.getContent(fullPath);
@@ -356,7 +380,11 @@ class MenuCharacterEditorState extends MusicBeatState
 				var loadedChar:MenuCharacterFile = cast Json.parse(rawJson);
 				if(loadedChar.idle_anim != null && loadedChar.confirm_anim != null) //Make sure it's really a character
 				{
+					#if flash
 					var cutName:String = _file.name.substr(0, _file.name.length - 5);
+					#else
+					var cutName:String = name.substr(0, name.length - 5);
+					#end
 					trace("Successfully loaded file: " + cutName);
 					characterFile = loadedChar;
 					reloadSelectedCharacter();
@@ -370,7 +398,9 @@ class MenuCharacterEditorState extends MusicBeatState
 				}
 			}
 		}
+		#if flash
 		_file = null;
+		#end
 		#else
 		trace("File couldn't be loaded! You aren't on Desktop, are you?");
 		#end
@@ -381,11 +411,13 @@ class MenuCharacterEditorState extends MusicBeatState
 		*/
 	function onLoadCancel(_):Void
 	{
+		#if flash
 		_file.removeEventListener(Event.SELECT, onLoadComplete);
 		_file.removeEventListener(Event.CANCEL, onLoadCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onLoadError);
 		_file = null;
 		trace("Cancelled file loading.");
+		#end
 	}
 
 	/**
@@ -393,11 +425,13 @@ class MenuCharacterEditorState extends MusicBeatState
 		*/
 	function onLoadError(_):Void
 	{
+		#if flash
 		_file.removeEventListener(Event.SELECT, onLoadComplete);
 		_file.removeEventListener(Event.CANCEL, onLoadCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onLoadError);
 		_file = null;
 		trace("Problem loading file");
+		#end
 	}
 
 	function saveCharacter() {
@@ -406,12 +440,16 @@ class MenuCharacterEditorState extends MusicBeatState
 		{
 			var splittedImage:Array<String> = imageInputText.text.trim().split('_');
 			var characterName:String = splittedImage[splittedImage.length-1].toLowerCase().replace(' ', '');
-
+			
+			#if flash
 			_file = new FileReference();
 			_file.addEventListener(Event.COMPLETE, onSaveComplete);
 			_file.addEventListener(Event.CANCEL, onSaveCancel);
 			_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
 			_file.save(data, characterName + ".json");
+			#else
+			openSubState(new FileBrowserDialog(SAVE_FILE, SUtil.getPathNoSlash(), characterName + ".json", "json", data));
+			#end
 		}
 	}
 

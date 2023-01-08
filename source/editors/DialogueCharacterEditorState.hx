@@ -1,5 +1,7 @@
 package editors;
 
+import lime.graphics.cairo.CairoLineJoin;
+import mobile.FileBrowserDialog;
 #if desktop
 import Discord.DiscordClient;
 #end
@@ -161,6 +163,11 @@ class DialogueCharacterEditorState extends MusicBeatState
 		addEditorBox();
 		FlxG.mouse.visible = true;
 		updateCharTypeBox();
+
+		#if android
+		addVirtualPad(LEFT_FULL, A_B_X_Y);
+		addPadCamera();
+		#end
 		
 		super.create();
 	}
@@ -259,10 +266,13 @@ class DialogueCharacterEditorState extends MusicBeatState
 		});
 		
 		animationInputText = new FlxUIInputText(15, 85, 80, '', 8);
+		animationInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(animationInputText);
 		loopInputText = new FlxUIInputText(animationInputText.x, animationInputText.y + 35, 150, '', 8);
+		loopInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(loopInputText);
 		idleInputText = new FlxUIInputText(loopInputText.x, loopInputText.y + 40, 150, '', 8);
+		idleInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(idleInputText);
 		
 		var addUpdateButton:FlxButton = new FlxButton(10, idleInputText.y + 30, "Add/Update", function() {
@@ -364,6 +374,7 @@ class DialogueCharacterEditorState extends MusicBeatState
 		tab_group.name = "Character";
 
 		imageInputText = new FlxUIInputText(10, 30, 80, character.jsonFile.image, 8);
+		imageInputText.focusGained = () -> FlxG.stage.window.textInputEnabled = true;
 		blockPressWhileTypingOn.push(imageInputText);
 		xStepper = new FlxUINumericStepper(imageInputText.x, imageInputText.y + 50, 10, character.jsonFile.position[0], -2000, 2000, 0);
 		yStepper = new FlxUINumericStepper(imageInputText.x + 80, xStepper.y, 10, character.jsonFile.position[1], -2000, 2000, 0);
@@ -529,7 +540,7 @@ class DialogueCharacterEditorState extends MusicBeatState
 			FlxG.sound.muteKeys = TitleState.muteKeys;
 			FlxG.sound.volumeDownKeys = TitleState.volumeDownKeys;
 			FlxG.sound.volumeUpKeys = TitleState.volumeUpKeys;
-			if(FlxG.keys.justPressed.SPACE && UI_mainbox.selected_tab_id == 'Character') {
+			if(FlxG.keys.justPressed.SPACE #if android || _virtualpad.buttonA.justPressed #end && UI_mainbox.selected_tab_id == 'Character') {
 				character.playAnim(character.jsonFile.animations[curAnim].anim);
 				daText.resetDialogue();
 				updateTextBox();
@@ -538,13 +549,13 @@ class DialogueCharacterEditorState extends MusicBeatState
 			//lots of Ifs lol get trolled
 			var offsetAdd:Int = 1;
 			var speed:Float = 300;
-			if(FlxG.keys.pressed.SHIFT) {
+			if(FlxG.keys.pressed.SHIFT #if android || _virtualpad.buttonB.justPressed #end) {
 				speed = 1200;
 				offsetAdd = 10;
 			}
 
 			var negaMult:Array<Int> = [1, 1, -1, -1];
-			var controlArray:Array<Bool> = [FlxG.keys.pressed.J, FlxG.keys.pressed.I, FlxG.keys.pressed.L, FlxG.keys.pressed.K];
+			var controlArray:Array<Bool> = [FlxG.keys.pressed.J #if android || _virtualpad.buttonLeft.justPressed #end, FlxG.keys.pressed.I #if android || _virtualpad.buttonUp.justPressed #end, FlxG.keys.pressed.L #if android || _virtualpad.buttonRight.justPressed #end, FlxG.keys.pressed.K #if android || _virtualpad.buttonDown.justPressed #end];
 			for (i in 0...controlArray.length) {
 				if(controlArray[i]) {
 					if(i % 2 == 1) {
@@ -597,7 +608,7 @@ class DialogueCharacterEditorState extends MusicBeatState
 				camGame.zoom += elapsed * camGame.zoom;
 				if(camGame.zoom > 1) camGame.zoom = 1;
 			}
-			if(FlxG.keys.justPressed.H) {
+			if(FlxG.keys.justPressed.H #if android || _virtualpad.buttonX.justPressed #end) {
 				if(UI_mainbox.selected_tab_id == 'Animations') {
 					currentGhosts++;
 					if(currentGhosts > 2) currentGhosts = 0;
@@ -610,7 +621,7 @@ class DialogueCharacterEditorState extends MusicBeatState
 					hudGroup.visible = !hudGroup.visible;
 				}
 			}
-			if(FlxG.keys.justPressed.R) {
+			if(FlxG.keys.justPressed.R #if android || _virtualpad.buttonY.justPressed #end) {
 				camGame.zoom = 1;
 				mainGroup.setPosition(0, 0);
 				hudGroup.visible = true;
@@ -652,7 +663,7 @@ class DialogueCharacterEditorState extends MusicBeatState
 			if(UI_mainbox.selected_tab_id == 'Character')
 			{
 				var negaMult:Array<Int> = [1, -1];
-				var controlAnim:Array<Bool> = [FlxG.keys.justPressed.W, FlxG.keys.justPressed.S];
+				var controlAnim:Array<Bool> = [FlxG.keys.justPressed.W #if android || _virtualpad.buttonUp.justPressed #end, FlxG.keys.justPressed.S #if android || _virtualpad.buttonDown.justPressed #end];
 
 				if(controlAnim.contains(true))
 				{
@@ -672,7 +683,7 @@ class DialogueCharacterEditorState extends MusicBeatState
 				}
 			}
 
-			if(FlxG.keys.justPressed.ESCAPE) {
+			if(FlxG.keys.justPressed.ESCAPE #if android || FlxG.android.justReleased.BACK #end) {
 				MusicBeatState.switchState(new editors.MasterEditorMenu());
 				FlxG.sound.playMusic(Paths.music('freakyMenu'), 1);
 				transitioning = true;
@@ -688,24 +699,38 @@ class DialogueCharacterEditorState extends MusicBeatState
 	
 	var _file:FileReference = null;
 	function loadCharacter() {
+		#if flash
 		var jsonFilter:FileFilter = new FileFilter('JSON', 'json');
 		_file = new FileReference();
 		_file.addEventListener(Event.SELECT, onLoadComplete);
 		_file.addEventListener(Event.CANCEL, onLoadCancel);
 		_file.addEventListener(IOErrorEvent.IO_ERROR, onLoadError);
 		_file.browse([jsonFilter]);
+		#else
+		openSubState(new FileBrowserDialog(LOAD_FILE, SUtil.getPathNoSlash(), "*.json", "json", "", onLoadComplete));
+		#end
 	}
 
+	#if flash
 	function onLoadComplete(_):Void
+	#else
+	function onLoadComplete(path:String, name:String, cancelled:Bool):Void
+	#end
 	{
+		#if flash
 		_file.removeEventListener(Event.SELECT, onLoadComplete);
 		_file.removeEventListener(Event.CANCEL, onLoadCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onLoadError);
+		#end
 
 		#if sys
 		var fullPath:String = null;
+		#if flash
 		@:privateAccess
 		if(_file.__path != null) fullPath = _file.__path;
+		#else
+		fullPath = path;
+		#end
 
 		if(fullPath != null) {
 			var rawJson:String = File.getContent(fullPath);
@@ -713,7 +738,11 @@ class DialogueCharacterEditorState extends MusicBeatState
 				var loadedChar:DialogueCharacterFile = cast Json.parse(rawJson);
 				if(loadedChar.dialogue_pos != null) //Make sure it's really a dialogue character
 				{
+					#if flash
 					var cutName:String = _file.name.substr(0, _file.name.length - 5);
+					#else
+					var cutName:String = name.substr(0, name.length - 5);
+					#end
 					trace("Successfully loaded file: " + cutName);
 					character.jsonFile = loadedChar;
 					reloadCharacter();
@@ -741,11 +770,13 @@ class DialogueCharacterEditorState extends MusicBeatState
 		*/
 	function onLoadCancel(_):Void
 	{
+		#if flash
 		_file.removeEventListener(Event.SELECT, onLoadComplete);
 		_file.removeEventListener(Event.CANCEL, onLoadCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onLoadError);
 		_file = null;
 		trace("Cancelled file loading.");
+		#end
 	}
 
 	/**
@@ -753,11 +784,13 @@ class DialogueCharacterEditorState extends MusicBeatState
 		*/
 	function onLoadError(_):Void
 	{
+		#if flash
 		_file.removeEventListener(Event.SELECT, onLoadComplete);
 		_file.removeEventListener(Event.CANCEL, onLoadCancel);
 		_file.removeEventListener(IOErrorEvent.IO_ERROR, onLoadError);
 		_file = null;
 		trace("Problem loading file");
+		#end
 	}
 
 	function saveCharacter() {
@@ -767,11 +800,15 @@ class DialogueCharacterEditorState extends MusicBeatState
 			var splittedImage:Array<String> = imageInputText.text.trim().split('_');
 			var characterName:String = splittedImage[0].toLowerCase().replace(' ', '');
 
+			#if flash
 			_file = new FileReference();
 			_file.addEventListener(Event.COMPLETE, onSaveComplete);
 			_file.addEventListener(Event.CANCEL, onSaveCancel);
 			_file.addEventListener(IOErrorEvent.IO_ERROR, onSaveError);
 			_file.save(data, characterName + ".json");
+			#else
+			openSubState(new FileBrowserDialog(SAVE_FILE, SUtil.getPathNoSlash(), characterName + ".json", "json", data));
+			#end
 		}
 	}
 

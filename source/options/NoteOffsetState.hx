@@ -54,7 +54,7 @@ class NoteOffsetState extends MusicBeatState
 		FlxG.cameras.add(camHUD, false);
 		FlxG.cameras.add(camOther, false);
 
-		FlxG.cameras.setDefaultDrawTarget(camGame, true);
+		FlxCamera.defaultCameras = [camGame];
 		CustomFadeTransition.nextCamera = camOther;
 		FlxG.camera.scroll.set(120, 130);
 
@@ -197,6 +197,11 @@ class NoteOffsetState extends MusicBeatState
 
 		Conductor.changeBPM(128.0);
 		FlxG.sound.playMusic(Paths.music('offsetSong'), 1, true);
+		
+		#if android
+		addVirtualPad(LEFT_FULL, A_B_C);
+		addPadCamera();
+		#end
 
 		super.create();
 	}
@@ -296,7 +301,7 @@ class NoteOffsetState extends MusicBeatState
 				}
 			}
 
-			if(controls.RESET)
+			if(controls.RESET #if android || _virtualpad.buttonC.justPressed #end)
 			{
 				for (i in 0...ClientPrefs.comboOffset.length)
 				{
@@ -334,7 +339,7 @@ class NoteOffsetState extends MusicBeatState
 				updateNoteDelay();
 			}
 
-			if(controls.RESET)
+			if(controls.RESET #if android || _virtualpad.buttonC.justPressed #end)
 			{
 				holdTime = 0;
 				barPercent = 0;
@@ -383,10 +388,10 @@ class NoteOffsetState extends MusicBeatState
 		
 		if(curBeat % 4 == 2)
 		{
-			FlxG.camera.zoom = 1.15;
+			FlxG.camera.zoom = 1.65;
 
 			if(zoomTween != null) zoomTween.cancel();
-			zoomTween = FlxTween.tween(FlxG.camera, {zoom: 1}, 1, {ease: FlxEase.circOut, onComplete: function(twn:FlxTween)
+			zoomTween = FlxTween.tween(FlxG.camera, {zoom: 1.5}, 1, {ease: FlxEase.circOut, onComplete: function(twn:FlxTween)
 				{
 					zoomTween = null;
 				}

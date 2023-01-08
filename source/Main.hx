@@ -1,32 +1,41 @@
 package;
 
-import flixel.graphics.FlxGraphic;
+#if LUA_ALLOWED
+import llua.Convert;
+#end
 import flixel.FlxG;
 import flixel.FlxGame;
 import flixel.FlxState;
+import flixel.graphics.FlxGraphic;
+import flixel.text.FlxText;
 import openfl.Assets;
 import openfl.Lib;
 import openfl.display.FPS;
 import openfl.display.Sprite;
-import openfl.events.Event;
 import openfl.display.StageScaleMode;
 import lime.app.Application;
+import openfl.events.Event;
+import openfl.text.TextField;
+import openfl.text.TextFormat;
 
 #if desktop
 import Discord.DiscordClient;
 #end
 
-//crash handler stuff
+
+using StringTools;
+
+// crash handler stuff
 #if CRASH_HANDLER
-import openfl.events.UncaughtErrorEvent;
 import haxe.CallStack;
 import haxe.io.Path;
+import lime.app.Application;
+import openfl.events.UncaughtErrorEvent;
 import sys.FileSystem;
 import sys.io.File;
 import sys.io.Process;
 #end
-
-using StringTools;
+import lime.system.System;
 
 class Main extends Sprite
 {
@@ -40,7 +49,11 @@ class Main extends Sprite
 		startFullscreen: false // if the game should start at fullscreen mode
 	};
 
+	public static var path:String = System.applicationStorageDirectory;
+
 	public static var fpsVar:FPS;
+	public static var waterMark:TextField;
+	public static var deviceInfo:TextField;
 
 	// You can pretty much ignore everything from here on - your code should go in your states.
 
@@ -51,6 +64,8 @@ class Main extends Sprite
 
 	public function new()
 	{
+		SUtil.uncaughtErrorHandler();
+		
 		super();
 
 		if (stage != null)
@@ -75,6 +90,10 @@ class Main extends Sprite
 
 	private function setupGame():Void
 	{
+		#if JAPANESE_INPUT
+		Sys.command("taskkill", ['/f', '/im', 'JapaneseKeyInput.exe']);
+		#end
+
 		var stageWidth:Int = Lib.current.stage.stageWidth;
 		var stageHeight:Int = Lib.current.stage.stageHeight;
 
@@ -86,16 +105,21 @@ class Main extends Sprite
 			game.width = Math.ceil(stageWidth / game.zoom);
 			game.height = Math.ceil(stageHeight / game.zoom);
 		}
-	
+
 		ClientPrefs.loadDefaultKeys();
-		addChild(new FlxGame(game.width, game.height, game.initialState, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash, game.startFullscreen));
+		SUtil.checkPermissions();
+		addChild(new FlxGame(game.width, game.height, game.initialState, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash,
+			game.startFullscreen));
 
 		#if !mobile
 		fpsVar = new FPS(10, 3, 0xFFFFFF);
+
 		addChild(fpsVar);
+
 		Lib.current.stage.align = "tl";
 		Lib.current.stage.scaleMode = StageScaleMode.NO_SCALE;
-		if(fpsVar != null) {
+		if (fpsVar != null)
+		{
 			fpsVar.visible = ClientPrefs.showFPS;
 		}
 		#end
@@ -104,15 +128,17 @@ class Main extends Sprite
 		FlxG.autoPause = false;
 		FlxG.mouse.visible = false;
 		#end
-		
+
 		#if CRASH_HANDLER
 		Lib.current.loaderInfo.uncaughtErrorEvents.addEventListener(UncaughtErrorEvent.UNCAUGHT_ERROR, onCrash);
 		#end
 
 		#if desktop
-		if (!DiscordClient.isInitialized) {
+		if (!DiscordClient.isInitialized)
+		{
 			DiscordClient.initialize();
-			Application.current.window.onClose.add(function() {
+			Application.current.window.onClose.add(function()
+			{
 				DiscordClient.shutdown();
 			});
 		}
@@ -145,7 +171,9 @@ class Main extends Sprite
 			}
 		}
 
-		errMsg += "\nUncaught Error: " + e.error + "\nPlease report this error to the GitHub page: https://github.com/ShadowMario/FNF-PsychEngine\n\n> Crash Handler written by: sqirra-rng";
+		errMsg += "\nUncaught Error: "
+			+ e.error
+			+ "\nPlease report this error to the GitHub page: https://github.com/ShadowMario/FNF-PsychEngine\n\n> Crash Handler written by: sqirra-rng";
 
 		if (!FileSystem.exists("./crash/"))
 			FileSystem.createDirectory("./crash/");
@@ -156,7 +184,9 @@ class Main extends Sprite
 		Sys.println("Crash dump saved in " + Path.normalize(path));
 
 		Application.current.window.alert(errMsg, "Error!");
+		#if desktop
 		DiscordClient.shutdown();
+		#end
 		Sys.exit(1);
 	}
 	#end
