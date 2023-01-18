@@ -102,8 +102,10 @@ class Main extends Sprite
 			var ratioX:Float = stageWidth / game.width;
 			var ratioY:Float = stageHeight / game.height;
 			game.zoom = Math.min(ratioX, ratioY);
+			#if !mobile
 			game.width = Math.ceil(stageWidth / game.zoom);
 			game.height = Math.ceil(stageHeight / game.zoom);
+			#end
 		}
 
 		ClientPrefs.loadDefaultKeys();

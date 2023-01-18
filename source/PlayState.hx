@@ -1621,7 +1621,7 @@ class PlayState extends MusicBeatState
 			return;
 		}
 
-		#if desktop
+		#if (desktop || android)
 		var video:MP4Handler = new MP4Handler();
 		video.playVideo(filepath);
 		video.finishCallback = function()
