@@ -64,7 +64,7 @@ class Main extends Sprite
 
 	public function new()
 	{
-		SUtil.uncaughtErrorHandler();
+		SUtil.gameCrashCheck();
 		
 		super();
 
@@ -107,7 +107,7 @@ class Main extends Sprite
 		}
 
 		ClientPrefs.loadDefaultKeys();
-		SUtil.checkPermissions();
+		SUtil.doTheCheck();
 		addChild(new FlxGame(game.width, game.height, game.initialState, #if (flixel < "5.0.0") game.zoom, #end game.framerate, game.framerate, game.skipSplash,
 			game.startFullscreen));
 

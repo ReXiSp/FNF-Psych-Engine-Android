@@ -22,7 +22,7 @@ import flixel.group.FlxGroup;
 import flixel.addons.ui.FlxInputText;
 #if android
 import lime.system.JNI;
-import android.widget.Toast;
+// import android.widget.Toast;
 #end
 
 using StringTools;
@@ -245,7 +245,7 @@ class FileBrowserDialog extends MusicBeatSubstate
                                         if (!file.endsWith("." + extension)) file = file + "." + extension;
                                         try {
                                             File.saveContent(curDirectory + "/" + file, data);
-                                            Toast.makeText("Saved!", Toast.LENGTH_SHORT);
+                                            // Toast.makeText("Saved!", Toast.LENGTH_SHORT);
                                             if (onActionComplete != null)
                                                 onActionComplete(curDirectory + "/" + file, file, false);
                                             if (cameraReset)
@@ -254,7 +254,7 @@ class FileBrowserDialog extends MusicBeatSubstate
                                         }
                                         catch (e)
                                         {
-                                            Toast.makeText("Could not save file. Try another directory.", Toast.LENGTH_LONG);
+                                            // Toast.makeText("Could not save file. Try another directory.", Toast.LENGTH_LONG);
                                         }
                                     case LOAD_FILE:
                                         var file:String = fileInputText.text;
@@ -266,8 +266,8 @@ class FileBrowserDialog extends MusicBeatSubstate
                                                 FlxG.cameras.reset();
                                             close();
                                         }
-                                        else
-                                            Toast.makeText("File not found.", Toast.LENGTH_SHORT);
+                                        // else
+                                            // Toast.makeText("File not found.", Toast.LENGTH_SHORT);
                                 }
                             }
                         }
