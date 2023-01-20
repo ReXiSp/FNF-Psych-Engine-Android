@@ -90,22 +90,16 @@ class Main extends Sprite
 
 	private function setupGame():Void
 	{
-		#if JAPANESE_INPUT
-		Sys.command("taskkill", ['/f', '/im', 'JapaneseKeyInput.exe']);
-		#end
 
-		var stageWidth:Int = Lib.current.stage.stageWidth;
-		var stageHeight:Int = Lib.current.stage.stageHeight;
-
+		var stageWidth:Int = #if mobile 1280 #else Lib.current.stage.stageWidth #end;
+		var stageHeight:Int = #if mobile 720 #else Lib.current.stage.stageWidth #end;
 		if (game.zoom == -1.0)
 		{
 			var ratioX:Float = stageWidth / game.width;
 			var ratioY:Float = stageHeight / game.height;
 			game.zoom = Math.min(ratioX, ratioY);
-			#if !mobile
 			game.width = Math.ceil(stageWidth / game.zoom);
 			game.height = Math.ceil(stageHeight / game.zoom);
-			#end
 		}
 
 		ClientPrefs.loadDefaultKeys();
