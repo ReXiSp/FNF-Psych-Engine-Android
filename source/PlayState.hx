@@ -72,7 +72,7 @@ import sys.io.File;
 #end
 
 #if VIDEOS_ALLOWED
-import vlc.MP4Handler;
+import hxcodec.VideoHandler;
 #end
 
 using StringTools;
@@ -1610,8 +1610,12 @@ class PlayState extends MusicBeatState
 		inCutscene = true;
 
 		var filepath:String = Paths.video(name);
+		//trace(filepath);
 		#if sys
 		if(!FileSystem.exists(filepath))
+		#else
+		if(!FileSystem.exists(filepath))
+		#end
 		#else
 		if(!OpenFlAssets.exists(filepath))
 		#end
@@ -1622,23 +1626,24 @@ class PlayState extends MusicBeatState
 		}
 
 		#if (desktop || android)
-		var video:MP4Handler = new MP4Handler();
-		video.playVideo(filepath);
+		var video:VideoHandler = new VideoHandler();
+		video.playVideo(filepath, false);
 		video.finishCallback = function()
 		{
 			startAndEnd();
 			return;
 		}
+		/*#elseif android
+		VideoView.playVideo("file://" + filepath);
+		VideoView.onCompletion = function(){
+			startAndEnd();
+			return;
+		}*/
 		#else
-		(new FlxVideo(filepath)).finishCallback = function() {
-			//			remove(bg);
-						startAndEnd();
-					}
-		#end
 		FlxG.log.warn('Platform not supported!');
 		startAndEnd();
-		return;
 		#end
+		return;
 	}
 
 	function startAndEnd()
