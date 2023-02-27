@@ -304,6 +304,7 @@ class PlayState extends MusicBeatState
 
 	// Lua shit
 	public static var instance:PlayState;
+	public static var video:VideoHandler;
 	public var luaArray:Array<FunkinLua> = [];
 	private var luaDebugGroup:FlxTypedGroup<DebugLuaText>;
 	public var introSoundsSuffix:String = '';
@@ -1626,7 +1627,14 @@ class PlayState extends MusicBeatState
 		}
 
 		#if (desktop || android)
-		var video:VideoHandler = new VideoHandler();
+
+		if (video != null)
+		{
+			video.stop();
+			video = null;
+		}
+
+		video = new VideoHandler();
 		video.playVideo(filepath, false);
 		video.finishCallback = function()
 		{
@@ -2817,6 +2825,10 @@ class PlayState extends MusicBeatState
 			for (timer in modchartTimers) {
 				timer.active = true;
 			}
+
+			if (video != null)
+				video.resume();
+
 			paused = false;
 			callOnLuas('onResume', []);
 
@@ -3360,6 +3372,10 @@ class PlayState extends MusicBeatState
 			FlxG.sound.music.pause();
 			vocals.pause();
 		}
+		
+		if (video != null)
+			video.pause();
+
 		openSubState(new PauseSubState(boyfriend.getScreenPosition().x, boyfriend.getScreenPosition().y));
 		//}
 
