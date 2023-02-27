@@ -1631,6 +1631,7 @@ class PlayState extends MusicBeatState
 		if (video != null)
 		{
 			video.stop();
+			video.dispose();
 			video = null;
 		}
 
@@ -5030,6 +5031,12 @@ class PlayState extends MusicBeatState
 		}
 		FlxAnimationController.globalSpeed = 1;
 		FlxG.sound.music.pitch = 1;
+		if (video != null)
+		{
+			video.stop();
+			video.dispose();
+		}
+
 		super.destroy();
 	}
 
