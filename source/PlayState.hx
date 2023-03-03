@@ -5033,8 +5033,10 @@ class PlayState extends MusicBeatState
 		FlxG.sound.music.pitch = 1;
 		if (video != null)
 		{
-			video.stop();
-			video.dispose();
+			if (video.isPlaying)
+				video.stop();
+			//video.dispose();
+			video = null;
 		}
 
 		super.destroy();

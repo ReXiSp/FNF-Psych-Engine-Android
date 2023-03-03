@@ -123,7 +123,7 @@ class SUtil
 
 		#if MODS_ALLOWED
 		if (!FileSystem.exists(path))
-			FileSystem.createDirectory(path);
+			//FileSystem.createDirectory(path);
 
 		File.saveContent(path, errMsg + "\n");
 		#end
